@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="에듀심(EduSim) — 몰입형 가상 학습을 위한 인터랙티브 3D 인체 해부학 탐색기. 200개 이상의 해부학적 구조물을 실시간으로 살펴보세요.">
+  <meta name="author" content="Deep Gori (한글화: sigco3111)">
+  <meta name="keywords" content="3D 시뮬레이션, 교육 기술, Three.js, 인터랙티브 학습, 인체 해부학, 자바스크립트, WebGL, 인체 구조">
+  <meta property="og:title" content="에듀심(EduSim) — 인터랙티브 3D 인체 해부학 탐색기">
+  <meta property="og:description" content="200개 이상의 구조물을 갖춘 고정밀 3D 인체 해부 아틀라스. Three.js, JavaScript, HTML & CSS로 제작.">
+  <meta property="og:type" content="website">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <title>에듀심(EduSim) — 인터랙티브 3D 인체 해부학 탐색기</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <!-- Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- OrbitControls -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <!-- CSS2DRenderer for floating labels -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
+  <!-- GLTFLoader for 3D model loading -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <!-- DRACOLoader for compressed models -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div class="loading-screen" id="loading-screen">
+    <div class="loader-ring"></div>
+    <div class="loader-text">시뮬레이션을 초기화하는 중...</div>
+  </div>
+
+  <div class="app-container" id="app">
+    <!-- Animated Background -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Navigation -->
+    <nav class="main-nav" id="main-nav">
+      <div class="nav-logo" id="nav-home">
+        <div class="logo-icon">🧬</div>
+        <span>Edu<span class="gradient-text">Sim</span></span>
+      </div>
+      <ul class="nav-links">
+        <li><a href="#simulations" class="active" id="nav-sims">시뮬레이션</a></li>
+        <li><a href="#dashboard" id="nav-dash">대시보드</a></li>
+      </ul>
+    </nav>
+
+    <!-- ============================== -->
+    <!-- LANDING PAGE                    -->
+    <!-- ============================== -->
+    <main id="landing-page">
+      <!-- Hero -->
+      <section class="hero-section" id="hero">
+        <div class="hero-badge">
+          <span class="pulse-dot"></span>
+          3D 의학 시각화 플랫폼
+        </div>
+        <h1 class="hero-title">
+          인터랙티브 3D로 <span class="gradient-text">인체 구조</span>를<br>
+          탐험해 보세요
+        </h1>
+        <p class="hero-subtitle">
+          Three.js와 WebGL로 제작된 고정밀 해부학 아틀라스입니다.
+          근육, 뼈, 장기를 아우르는 200개 이상의 해부학적 구조물을 실시간으로 렌더링하며,
+          인터랙티브 레이어 컨트롤, 검색, X-레이 모드를 제공합니다.
+        </p>
+        <div class="hero-actions">
+          <button class="btn btn-primary btn-lg" id="btn-explore">
+            🫀 인체 해부학 탐색기 실행
+          </button>
+          <button class="btn btn-secondary" id="btn-dashboard">
+            📊 대시보드 보기
+          </button>
+        </div>
+      </section>
+
+      <!-- Stats -->
+      <div class="stats-bar" id="stats-bar">
+        <div class="stat-item">
+          <div class="stat-value" id="stat-sims">200+</div>
+          <div class="stat-label">해부학적 구조물</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="stat-interactions">GLTF</div>
+          <div class="stat-label">3D 모델 포맷</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="stat-objects">DRACO</div>
+          <div class="stat-label">압축 (7.9 MB)</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="stat-realtime">60 FPS</div>
+          <div class="stat-label">WebGL 렌더링</div>
+        </div>
+      </div>
+
+      <!-- Simulation Cards -->
+      <section id="simulations">
+        <div class="section-header">
+          <div class="section-tag">추천</div>
+          <h2 class="section-title">3D 인체 해부 아틀라스</h2>
+          <p class="section-desc">클릭하여 인터랙티브 인체 탐색기를 실행하세요</p>
+        </div>
+
+        <div class="sim-grid" id="sim-grid">
+          <!-- Anatomy Card (FEATURED) -->
+          <div class="sim-card anatomy featured" id="card-anatomy" role="button" tabindex="0" aria-label="인체 해부학 탐색기 실행">
+            <div class="sim-card-preview">
+              <div class="sim-card-gradient"></div>
+              <canvas id="preview-anatomy"></canvas>
+              <span class="sim-card-badge">⭐ 추천 — GLTF 모델</span>
+            </div>
+            <div class="sim-card-body">
+              <h3 class="sim-card-title">🫀 인체 해부 아틀라스</h3>
+              <p class="sim-card-desc">
+                200개 이상의 해부학적 구조물을 갖춘 고정밀 3D 인체 모델을 탐험해 보세요.
+                근육, 뼈, 장기를 토글하고, 원하는 구조물을 클릭하면 위키백과 링크와 함께
+                상세한 의학 정보를 확인할 수 있습니다. Z-Anatomy 오픈 데이터셋(CC BY-SA 4.0)을 기반으로 제작되었습니다.
+              </p>
+              <div class="sim-card-meta">
+                <div class="sim-card-tags">
+                  <span class="sim-tag">GLTF/DRACO</span>
+                  <span class="sim-tag">200+ 메시</span>
+                  <span class="sim-tag">X-레이 모드</span>
+                  <span class="sim-tag">검색</span>
+                </div>
+                <button class="sim-card-action" aria-label="인체 해부학 탐색기 시작">→</button>
+              </div>
+            </div>
+          </div>
+
+
+        </div>
+      </section>
+
+      <!-- Dashboard Section -->
+      <section id="dashboard">
+        <div class="section-header">
+          <div class="section-tag">분석</div>
+          <h2 class="section-title">학습자 진도 대시보드</h2>
+          <p class="section-desc">인체 해부학 학습 성과와 탐색 지표를 확인하세요</p>
+        </div>
+
+        <div class="dashboard-section">
+          <div class="dashboard-grid" id="dashboard-metrics">
+            <!-- Filled dynamically -->
+          </div>
+
+          <div class="chart-row">
+            <div class="chart-card">
+              <div class="chart-card-title">📈 시간에 따른 학습 진도</div>
+              <div class="chart-container">
+                <canvas id="chart-progress"></canvas>
+              </div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-card-title">🎯 신체 시스템 탐색률</div>
+              <div class="chart-container">
+                <canvas id="chart-completion"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="chart-row">
+            <div class="chart-card">
+              <div class="chart-card-title">⏱ 탐색에 사용한 시간</div>
+              <div class="chart-container">
+                <canvas id="chart-time"></canvas>
+              </div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-card-title">🏆 인체 해부학 역량 프로필</div>
+              <div class="chart-container">
+                <canvas id="chart-scores"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="main-footer">
+        <ul class="footer-links">
+          <li><a href="https://linkedin.com/in/deepgori" target="_blank">LinkedIn</a></li>
+        </ul>
+        <p>에듀심(EduSim) © 2025 Deep Gori — Three.js, JavaScript, HTML & CSS로 제작</p>
+      </footer>
+    </main>
+
+    <!-- ============================== -->
+    <!-- SIMULATION VIEW (Fullscreen)    -->
+    <!-- ============================== -->
+    <div class="simulation-view" id="simulation-view">
+      <div class="sim-toolbar">
+        <div class="sim-toolbar-left">
+          <button class="sim-back-btn" id="sim-back" aria-label="시뮬레이션 목록으로 돌아가기">←</button>
+          <span class="sim-toolbar-title" id="sim-title">인체 해부학 탐색기</span>
+        </div>
+        <div class="sim-toolbar-right">
+          <button class="btn btn-sm btn-secondary" id="sim-reset">↺ 초기화</button>
+        </div>
+      </div>
+      <div class="sim-canvas-container" id="sim-canvas-container">
+        <canvas id="sim-canvas"></canvas>
+        <!-- HUD injected dynamically -->
+        <div class="hud-overlay" id="hud-overlay"></div>
+        <!-- Tutorial overlay -->
+        <div class="tutorial-overlay hidden" id="tutorial-overlay">
+          <div class="tutorial-card">
+            <div class="tutorial-step" id="tutorial-step">1단계 / 3단계</div>
+            <h3 id="tutorial-title">실험실에 오신 것을 환영합니다</h3>
+            <p id="tutorial-text">클릭하고 드래그하여 환경을 회전하세요. 스크롤로 확대/축소할 수 있습니다.</p>
+            <button class="btn btn-primary btn-sm" id="tutorial-next">확인 →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notifications -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Scripts (order matters) -->
+  <script src="js/utils/helpers.js"></script>
+  <script src="js/utils/analytics.js"></script>
+  <script src="js/ui/notifications.js"></script>
+  <script src="js/ui/hud.js"></script>
+  <script src="js/ui/objectives.js"></script>
+  <script src="js/ui/dashboard.js"></script>
+  <script src="js/sceneManager.js"></script>
+
+  <script src="js/simulations/anatomy.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
